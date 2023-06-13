@@ -142,17 +142,17 @@ function request(buoy::Union{AbstractString,Int}, year::Int, b_file::Bool=false)
 end
 
 
-function metadata(buoy::Union{AbstractString,Int})
-    url = "https://www.ndbc.noaa.gov/station_page.php?station=" * string(buoy)
-    # keys = ["Water depth", "Watch circle radius"]
-    # for key ∈ keys
-        # data = filter(x -> occursin(key, x), split(String(HTTP.get(url).body), '\n'))[1]
-        # replace([1], "\t" => "")
-        # remove <*>
-        # split on :
-    end
-end
-# TODO: missing data!
+# function metadata(buoy::Union{AbstractString,Int})
+#     url = "https://www.ndbc.noaa.gov/station_page.php?station=" * string(buoy)
+#     # keys = ["Water depth", "Watch circle radius"]
+#     # for key ∈ keys
+#         # data = filter(x -> occursin(key, x), split(String(HTTP.get(url).body), '\n'))[1]
+#         # replace([1], "\t" => "")
+#         # remove <*>
+#         # split on :
+#     end
+# end
+# # TODO: missing data!
 
 
 # TODO: yearly data
@@ -166,4 +166,4 @@ end
 
 # TODO: output as wave spectra
 
-end
+# end
