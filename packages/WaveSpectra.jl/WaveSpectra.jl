@@ -34,5 +34,5 @@ d = [0.0°,]
 🌊 = WaveSpectrum(S, f, d)
 
 
-using Geodesy
+using Geodesy: LonLat
 LonLat(12°, 13.32°)

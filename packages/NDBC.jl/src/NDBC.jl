@@ -7,9 +7,9 @@ using DelimitedFiles
 using DataFrames
 using Dates
 using Unitful
-using Unitful: Hz, °, m
+using Unitful: Hz, m
+using DimensionfulAngles: °ᵃ as °
 using AxisArrays
-
 
 function _available(parameter::AbstractString)
     # scrape website
@@ -89,7 +89,7 @@ end
 
 function read(file::AbstractString, parameter::Union{AbstractString,Nothing}=nothing)
     param_dict = Dict("w" => "swden", "d"  => "swdir", "i" => "swdir2", "j" => "swr1", "k" => "swr2")
-    isnothing(parameter) && (parameter = param_dict[string(file[6])])
+    isnothing(parameter) && (parameter = param_dict[string(basename(file)[6])])
     file[end-2:end] == ".gz" && (file = transcode(GzipDecompressor, Base.read(file, String)))
     _read(file, parameter)
 end
@@ -142,17 +142,45 @@ function request(buoy::Union{AbstractString,Int}, year::Int, b_file::Bool=false)
 end
 
 
-# function metadata(buoy::Union{AbstractString,Int})
-#     url = "https://www.ndbc.noaa.gov/station_page.php?station=" * string(buoy)
-#     # keys = ["Water depth", "Watch circle radius"]
-#     # for key ∈ keys
-#         # data = filter(x -> occursin(key, x), split(String(HTTP.get(url).body), '\n'))[1]
-#         # replace([1], "\t" => "")
-#         # remove <*>
-#         # split on :
-#     end
-# end
-# # TODO: missing data!
+function metadata(buoy::Union{AbstractString,Int})
+    keys = ["Water depth", "Watch circle radius"]
+    url = "https://www.ndbc.noaa.gov/station_page.php?station=" * string(buoy)
+    raw = split(String(HTTP.get(url, status_exception=false).body), '\n')
+    dict = Dict{String, Union{Nothing, Quantity}}()
+    for key in keys
+        data = filter(x -> occursin(key, x), raw)
+        if length(data) == 0
+            value =  NaN * 1m
+        else
+            value = replace(replace(data[1], "\t" => ""), r"<.+?(?=>)>" => "")
+            value = strip(split(value, ':')[2])
+            if key == "Water depth"
+                @assert split(value)[2] == "m"
+                value = parse(Float64, split(value)[1]) * 1m
+            elseif key == "Watch circle radius"
+                @assert split(value)[2] == "yards"
+                value = parse(Float64, split(value)[1]) * 0.9144m
+            end
+        end
+        dict[key] = value
+    end
+    # coordinates
+    pattern = r"([+-]?([0-9]*[.])?[0-9]+) +([NS]) +([+-]?([0-9]*[.])?[0-9]+) +([EW])"
+    loc = filter(x -> occursin(pattern, x), raw)
+    if length(loc) == 0
+        lat = NaN
+        lon = NaN
+    else
+        loc = match(pattern, loc[1])
+        lat = parse(Float64, loc[1])
+        (loc[3] == "S") && (lat *= -1)
+        lon = parse(Float64, loc[4])
+        (loc[6] == "W") && (lon *= -1)
+    end
+    dict["Latitude"] = lat * 1°
+    dict["Longitude"] = lon * 1°
+    return dict
+end
 
 
 # TODO: yearly data
@@ -162,8 +190,7 @@ end
 #     no large gaps: %, largest gaps, etc.
 #     missing values
 
-# TODO: station location & plot map!
 
 # TODO: output as wave spectra
 
-# end
+end
