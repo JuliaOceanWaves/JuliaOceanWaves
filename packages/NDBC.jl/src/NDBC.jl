@@ -1,11 +1,12 @@
 
 module NDBC
 
+using Dates
+
 using HTTP
 using TranscodingStreams, CodecZlib
 using DelimitedFiles
 using DataFrames
-using Dates
 using Unitful
 using Unitful: Hz, m
 using DimensionfulAngles: °ᵃ as °
@@ -183,14 +184,21 @@ function metadata(buoy::Union{AbstractString,Int})
 end
 
 
-# TODO: yearly data
-#   quality control
-#     monotonical
-#     % full year
-#     no large gaps: %, largest gaps, etc.
-#     missing values
-
-
 # TODO: output as wave spectra
+
+
+# function spectrum(data::AxisArray, angle_length::Int)
+#     # omnidirectional spectrum S(f)
+#     S = data[parameter=:den]
+#     # spread function D(f, θ)
+#     r₁ = 0.01 * data[parameter=:r1]
+#     r₂ = 0.01 * data[parameter=:r2]
+#     α₁ = data[parameter=:dir]
+#     α₂ = data[parameter=:dir2]
+#     θ =
+#     D = 1/π * (0.5 + r₁*cos(θ - α₁) + r₂*cos(2*(θ - α₂)))
+#     # Spectrum S(f, θ) = S(f) * D(f, θ)
+#     return S * D
+# end
 
 end
