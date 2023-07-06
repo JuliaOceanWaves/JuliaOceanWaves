@@ -1,150 +1,100 @@
 
 module Spectra
 
-using AxisArrays
+import Unitful.unit
 
-struct Spectrum{T,D,Ax} <: AxisArrays.AbstractAxisArray{T,2,D,Ax}
-    data::D
-    axes::Ax
+using AxisArrays: AxisArray, Axis
+using Unitful: Quantity, Units, 𝐓, 𝐋, dimension
+using DimensionfulAngles: 𝐀
 
-    # Spectrum{T,D,Ax}(data::AbstractMatrix{T}, axs::Tuple{Axis, Axis}) where {T,D,Ax} = new{T,D,Ax}(data, axs)
+export spectrum, isspectrum, typefrequency
 
-    # function Spectrum(S::AbstractMatrix{T}, ω::AbstractVector, θ::AbstractVector) where T
-    #     tmp = AxisArray(S, angularfrequengy=ω, direction=θ)
-    #     return new{T,D,Ax}(tmp.data, tmp.axes)
-    # end
+_IFREQUENCY = 1
+_IDIRECTION = 2
+
+Spectrum = AxisArray{
+    T,
+    2,
+    <:AbstractMatrix{T},
+    <:Tuple{
+        Axis{:frequency, <:AbstractVector{<:Union{
+            Quantity{S, 𝐓^-1},
+            Quantity{S, 𝐓},
+            Quantity{S, 𝐀*𝐓^-1},
+            Quantity{S, 𝐓*𝐀^-1},
+            Quantity{S, 𝐋^-1},
+            Quantity{S, 𝐋},
+            Quantity{S, 𝐀*𝐋^-1},
+            Quantity{S, 𝐋*𝐀^-1}
+        }}},
+        Axis{:direction, <:AbstractVector{<:Quantity{S, 𝐀}}}
+    }
+} where {T<:Quantity{S}} where S
+
+function spectrum(
+                  data::AbstractMatrix{<:Quantity},
+                  frequency::AbstractVector,
+                  direction::AbstractVector{<:Quantity{T, 𝐀} where T}
+                  )::Spectrum
+    # promotion
+    tdata = typeof(data).parameters[1].parameters[1]
+    tfrequency = typeof(frequency).parameters[1].parameters[1]
+    tdirection = typeof(direction).parameters[1].parameters[1]
+    commontype = Base.promote_type(tdata, tfrequency, tdirection)
+    data = data .|> commontype
+    frequency = frequency .|> commontype
+    direction = direction .|> commontype
+    # type consistency
+    function _check_typeconsistency(array::AbstractArray, name::String)
+        if !(all(y->typeof(y)==eltype(array), array))
+            error("All elements of `$(name)` must be of same type.")
+        end
+        return nothing
+    end
+    _check_typeconsistency(frequency, "`frequency` vector")
+    _check_typeconsistency(direction, "`direction` vector")
+    _check_typeconsistency(direction, "`data` matrix")
+    AxisArray
+    return AxisArray(data, frequency=frequency, direction=direction)
 end
 
-struct AAxisArray{T,N,D,Ax} <: AxisArrays.AbstractAxisArray{T,N,D,Ax}
-    data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
-    axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
-    AAxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
+function unit(spectrum::Spectrum, quantity::Symbol=:spectrum) :: Units
+    uspectrum = unit(spectrum[1, 1])
+	ufrequency = unit(spectrum.axes[_IFREQUENCY][1])
+	udirection = unit(spectrum.axes[_IDIRECTION][1])
+    ureturn = begin
+        quantity == :spectrum ? uspectrum :
+        quantity == :frequency ? ufrequency :
+        quantity == :direction ? udirection :
+        quantity == :integral ? uspectrum*ufrequency*udirection :
+        error("Unsuported quantity $(quantity).")
+    end
+    return ureturn
 end
 
+function isspectrum(spectrum) :: Bool
+    return typeof(spectrum) <: Spectrum
+end
 
-# function _check_spectrum(spectrum::AxisArray)
-# 	function _check_dimensions(vector::AbstractVector, dimensions_list::AbstractVector, name::String, dimensions_names::String)
-# 		if !(dimension(vector[1])  in dimensions_list)
-# 			error("The `$(name)` must have dimensions of $(dimensions_names).")
-# 		end
-# 		return nothing
-# 	end
+function convert_spectrum(spectrum::Spectrum)::Spectrum
+end
 
-# 	function _check_typeconsistency(array::AbstractArray, name::String)
-# 		if !(all(y->typeof(y)==eltype(array), array))
-# 			error("All elements of `$(name)` must be of same type.")
-# 		end
-# 	end
+function integral(spectrum::Spectrum, axis::Symbol=:both)::Quantity
+end
 
-# 	# frequency
-# 	frequency = axisvalues(spectrum)[1]
-# 	name = "frequency vector"
-# 	_check_typeconsistency(frequency, name)
-# 	_check_dimensions(frequency, [𝐓^-1, 𝐓, 𝐀/𝐓], name, "frequency, angular frequency, or period")
-
-# 	# direction
-# 	direction = axisvalues(spectrum)[2]
-# 	name = "direction vector"
-# 	_check_typeconsistency(direction, name)
-# 	_check_dimensions(direction, [𝐀,], name, "angle")
-
-# 	# spectrum
-# 	data = spectrum.data
-# 	name = "spectrum matrix"
-# 	_check_typeconsistency(data, name)
-
-# 	return nothing
-# end
-
-# function spectrum(data::AbstractMatrix, frequency::AbstractVector, direction::AbstractVector)
-# 	spectrum = AxisArray(data, frequency=frequency, direction=direction)
-# 	_check_spectrum(spectrum)
-# 	return spectrum
-# end
-
-# # TODO: Account for frequency to period...
-# function changeaxis(spectrum::AxisArray, axis::Symbol, units::Units, periodic::Bool=false)
-# 	data = spectrum.data
-# 	axisval = spectrum.axes[axis].val
-# 	# 	frequency, direction = spectrum.axes[1].val, spectrum.axes[2].val
-
-# 	uspectrum = unit(data[1, 1])
-# 	uaxis = unit(axisval[1])
-# # 	ufrequency, udirection = unit(frequency[1]), unit(direction[1])
-
-# 	(axis==:frequency) && (axisval = uconvert.(units, axisval, Periodic()))
-# 	axis==:direction && (axisval = uconvert.(units, axisval))
-# # 	axis==:frequency && (frequency = uconvert.(units, direction, Periodic()))
-
-# # 	ufrequencynew, udirectionnew = unit(frequency[1]), unit(direction[1])
-
-# # 	data *= ufrequency * udirection / (ufrequencynew * udirectionnew)
-# # 	spectrum = AxisArray(data, frequency=frequency, direction=direction)
-# # 	_check_spectrum(spectrum)
-# # 	return spectrum
-# # end
-
-
-# function integralunit(spectrum::AxisArray)
-# 	uspectrum = unit(spectrum[1, 1])
-# 	uaxis1 = unit(spectrum.axes[1][1])
-# 	uaxis2 = unit(spectrum.axes[2][1])
-# 	return uspectrum*uaxis1*uaxis2
-# end
-
-
-# function integral(spectrum::AxisArray)
-# end
-
-
-
-
-
-
-
-
-
-
-
-
-## OLD OLD
-# using Unitful
-# using Unitful: Hz, °
-
-# struct WaveSpectrum{T<:Union{Number,Quantity}} <: AbstractArray{T,2}
-#     spectrum::Array{T,2}
-#     frequency::Vector{typeof(1.0Hz)}
-#     direction::Vector{typeof(1°)}
-#     function WaveSpectrum(spectrum, frequency, direction)
-#         if size(spectrum) != (length(frequency), length(direction))
-#             error("Size of spectrum does not match size of frequency and direction arrays.")
-#         end
-#         # TODO: Check that all units in S are the same
-#         new{typeof(spectrum).parameters[1]}(spectrum, frequency, direction)
-#     end
-# end
-
-# Base.size(ws::WaveSpectrum) = size(ws.spectrum)
-# Base.getindex(ws::WaveSpectrum, i...) = ws.spectrum[i...]
-# Base.setindex!(ws::WaveSpectrum, value, i...) = ws.spectrum[i...] = value
-
-# # S = [1.0 2; 3 4] * u"m*m/Hz"
-# # f = [1.0Hz, 2.0Hz]
-# # d = [0°, 10.0°]
-
-# include("ndbc.jl")
-# buoy = 41001
-# year = 2021
-# sw = NDBC.request_directional_data(buoy, year)
-# S = transpose(sw[1:1, :, :den])
-# f = S.axes[1].val
-# d = [0.0°,]
-
-# 🌊 = WaveSpectrum(S, f, d)
-
-
-# using Geodesy: LonLat
-# LonLat(12°, 13.32°)
-
+function typefrequency(spectrum::Spectrum)::Symbol
+    dfrequency = dimension(spectrum.axes[_IFREQUENCY][1])
+    typefreq = begin
+        dfrequency == 𝐓^-1 ? :frequency :
+        dfrequency == 𝐀*𝐓^-1 ? :angular_frequency :
+        dfrequency == 𝐓 ? :period :
+        dfrequency == 𝐓*𝐀^-1 ? :angular_period :
+        dfrequency == 𝐋^-1 ? :wavenumber :
+        dfrequency == 𝐀*𝐋^-1 ? :angular_wavenumber :
+        dfrequency == 𝐋 ? :wavelength :
+        dfrequency == 𝐋*𝐀^-1 ? :angular_wavelength :
+        error("Something went seriously wrong...")
+    end
+end
 
 end
