@@ -46,7 +46,7 @@ year = 2021;
 bfile = false;
 
 # ╔═╡ 1111572a-b296-4cd2-bb9c-6d972d5a968a
-md"## Omnidirectional 
+md"## Omnidirectional
 ### available data"
 
 # ╔═╡ 26a94f52-cd1c-46ab-85a8-b5442f7bbc16
@@ -117,7 +117,7 @@ let
 	    fig[1, 1];
 		dest = "+proj=moll",
 	)
-	image!(ga, -180..180, -90..90, rotr90(GeoMakie.earth()); interpolate = false, inspectable=false) 
+	image!(ga, -180..180, -90..90, rotr90(GeoMakie.earth()); interpolate = false, inspectable=false)
 	scatter!(ga, ustrip.(ulons), ustrip.(ulats), color="tomato2", inspectable=true, inspector_label = (f,i,p) -> buoys[i])
 	DataInspector(fig)
 	fig
