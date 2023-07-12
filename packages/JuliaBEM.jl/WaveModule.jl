@@ -1,3 +1,6 @@
+"Julia rewrite of Fortran code from 
+https://github.com/capytaine/LiangWuNoblesse_Green_function/blob/7e9f925ba2901b5b33c77664b2be9a4df2c1f7db/Module_GreenFuncGlobal.f90"
+
 module WaveGreensFunction
 using SpecialFunctions
 export evaluate_greens_func
