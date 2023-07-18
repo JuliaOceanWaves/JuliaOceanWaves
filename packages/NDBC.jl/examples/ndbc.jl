@@ -169,6 +169,28 @@ import Plots
 # ╔═╡ ff1e66eb-8029-4fd8-b30e-1b5c3c3079e7
 Plots.plot(S.axes[1].val, S)
 
+# ╔═╡ 05c82ab3-ba4d-4a18-bb9f-067318b903a3
+md"""
+## SWDen
+"""
+
+# ╔═╡ 0764aa4d-f5f7-4101-a3f3-0d5445dcff71
+begin
+	omnidata = NDBC.request_omnidirectional(buoy, years[1], bfile)
+	for i ∈ 2:length(years)
+		omnidata = cat(omnidata, NDBC.request_omnidirectional(buoy, years[i], bfile); dims=1)
+	end
+end
+
+# ╔═╡ 403a8aee-e60d-4bbb-b6f1-0cf7a43e71c6
+plot(ustrip.(omnidata.data))
+
+# ╔═╡ 83c98781-d2b7-4389-aea3-30dbc550b322
+
+
+# ╔═╡ b622ff26-73a5-4d72-a521-1fdfeca69774
+avail_pw
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -2001,5 +2023,10 @@ version = "1.4.1+0"
 # ╠═14a1b567-939d-4ec6-afa4-e9600950e098
 # ╠═d46ca906-ffff-4c1c-9dd2-670433f7e7b6
 # ╠═ff1e66eb-8029-4fd8-b30e-1b5c3c3079e7
+# ╟─05c82ab3-ba4d-4a18-bb9f-067318b903a3
+# ╠═0764aa4d-f5f7-4101-a3f3-0d5445dcff71
+# ╠═403a8aee-e60d-4bbb-b6f1-0cf7a43e71c6
+# ╠═83c98781-d2b7-4389-aea3-30dbc550b322
+# ╠═b622ff26-73a5-4d72-a521-1fdfeca69774
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

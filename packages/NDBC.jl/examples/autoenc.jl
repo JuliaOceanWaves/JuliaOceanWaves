@@ -69,7 +69,8 @@ end
 # ╔═╡ 0db51b09-b88e-43fc-aab7-637e7d4f2033
 begin
 	alldata = NDBC.request_omnidirectional(buoy, years[1], bfile)
-	for i ∈ 2:5 #length(years)
+	for i ∈ 2:5#length(years)
+		println(years[i])
 		alldata = cat(alldata, NDBC.request_omnidirectional(buoy, years[i], bfile); dims=1)
 	end
 end
