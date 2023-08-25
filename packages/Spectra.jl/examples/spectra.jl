@@ -10,7 +10,7 @@ let
 	using DimensionfulAngles: radᵃ as rad, °ᵃ as °, 𝐀
 	using UnitfulEquivalences: Equivalence
 	using AxisArrays: AxisArray, Axis, axisnames, axisvalues, (..), ClosedInterval
-	using NumericalIntegration: integrate, Trapezoidal
+	using NumericalIntegration
 end;
 
 # ╔═╡ e2646a89-0080-4f2f-a74c-76019514b6d0
@@ -57,7 +57,7 @@ S = Spectra.Spectrum(randn(Nf, Nθ)*m^2/Hz/°, f, θ)
 md"### indexing"
 
 # ╔═╡ 1833e4b8-ea80-4e04-a6f3-b58e614166d0
-axisnames(S)
+axesnames(S)
 
 # ╔═╡ f3dfafdb-56b6-445d-8653-d1692d7a234b
 S[direction=40° .. 80°]
@@ -149,12 +149,6 @@ md"### indexing"
 # ╔═╡ 132a12f9-32c9-4458-a078-94bce25b5983
 Spectra.axesname(Sω)
 
-# ╔═╡ 8c960068-abc3-46ff-8f03-0202903e7008
-Sω[2]
-
-# ╔═╡ dbbf3ddd-b0e0-46fb-a472-a6af475fd10a
-Sω[2:5]
-
 # ╔═╡ 81508fa5-c8ee-4a7b-aa9d-5807385a864d
 Sω[angular_frequency=0.1rad/s]
 
@@ -173,25 +167,15 @@ md"### assignment"
 # ╔═╡ 8017e36c-e305-4693-b895-1c4e4333e6ae
 Sω
 
-# ╔═╡ a1b6438c-1950-4bda-ac30-f5c95839079f
-begin
-	Sω2 = copy(Sω)
-	Sω2[2] = 0m^2/(rad/s)
-	Sω2[9:10] = [0m^2/(rad/s), 0m^2/(rad/s)]
-end
-
-# ╔═╡ afde1405-0ae3-448a-83c6-4a8cb61fe7bd
-Sω2
-
 # ╔═╡ abc73aeb-5316-4798-950a-c25e8ad6898b
 begin
-	Sω3 = copy(Sω)
-	Sω3[angular_frequency=0.2rad/s] = 100m^2/(rad/s)
-	Sω3[0.3rad/s] = 200m^2/(rad/s)
+	Sω2 = copy(Sω)
+	Sω2[angular_frequency=0.2rad/s] = 100m^2/(rad/s)
+	Sω2[0.3rad/s] = 200m^2/(rad/s)
 end;
 
 # ╔═╡ 938a93f6-7272-411a-b1a4-d20943720292
-[Sω3, Sω3]
+Sω2
 
 # ╔═╡ 8dce359a-5111-4eb3-ab8a-57b8a548d2ca
 md"#### AxisArray bug?"
@@ -228,6 +212,27 @@ AxisArray(Sω)
 
 # ╔═╡ 57b415de-a173-41f7-95ce-e3250b272a96
 (S, Sω)
+
+# ╔═╡ 688fbba9-4950-4158-bcc9-6c81c9a530fa
+md"## 3. Integrals"
+
+# ╔═╡ 04865b34-240b-4891-93b2-1c7abe52864a
+integrate(S), integrate(Sω)
+
+# ╔═╡ f102117e-d4ee-44b5-b6ad-b6e98724762e
+integrate(Sω), integrate(Sω, TrapezoidalEvenFast()), integrate(Sω, SimpsonEven())
+
+# ╔═╡ 1bd83ee2-a95f-443f-a138-6ff903b745a7
+integrate(S, :frequency)
+
+# ╔═╡ dae4dbfa-cc82-4c66-b8b3-f4affec8cb67
+integrate(S, :direction, TrapezoidalEvenFast())
+
+# ╔═╡ 010a824e-0671-4748-ab92-5b416e8bd0ad
+md"## 4. Change of variables"
+
+# ╔═╡ 3629ad15-b992-475a-a94a-ea3270311a70
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -578,7 +583,7 @@ version = "17.4.0+0"
 # ╠═06750eb9-794e-42fa-ae52-d7121b9b9b2f
 # ╠═194b0c5f-aa6b-4dfb-a26c-49bdcdcdbd2d
 # ╠═8340e2b2-caa6-4806-a404-01bc81e74335
-# ╠═6bd5fe2f-12db-4851-8e7f-f38b995f5eb0
+# ╟─6bd5fe2f-12db-4851-8e7f-f38b995f5eb0
 # ╠═cfe1e2e3-23d0-45b0-9525-f061bba17c3f
 # ╠═44a3569c-21a1-4fa6-962e-d7d8da88bf36
 # ╠═c8c2dfa9-c771-4c7b-ae52-92c6a63f0ddc
@@ -598,16 +603,12 @@ version = "17.4.0+0"
 # ╠═03126da0-7416-457a-b081-e676e0808042
 # ╟─7c0b52ec-db20-4e15-939a-686967020046
 # ╠═132a12f9-32c9-4458-a078-94bce25b5983
-# ╠═8c960068-abc3-46ff-8f03-0202903e7008
-# ╠═dbbf3ddd-b0e0-46fb-a472-a6af475fd10a
 # ╠═81508fa5-c8ee-4a7b-aa9d-5807385a864d
 # ╠═4bf04ae1-8f9c-4a32-99d1-c40356a649cd
 # ╠═c7b33e7e-f8ce-4029-b42d-54619dec6099
 # ╠═79fff198-88a4-4dbb-a367-5a6027436302
 # ╟─ef01bfc1-f134-43b0-a3ff-b74007f55701
 # ╠═8017e36c-e305-4693-b895-1c4e4333e6ae
-# ╠═a1b6438c-1950-4bda-ac30-f5c95839079f
-# ╠═afde1405-0ae3-448a-83c6-4a8cb61fe7bd
 # ╠═abc73aeb-5316-4798-950a-c25e8ad6898b
 # ╠═938a93f6-7272-411a-b1a4-d20943720292
 # ╟─8dce359a-5111-4eb3-ab8a-57b8a548d2ca
@@ -622,5 +623,12 @@ version = "17.4.0+0"
 # ╠═cb4b004f-f606-4bae-bb21-7a3a01524300
 # ╠═74f23746-8a72-4133-8162-e903df905b27
 # ╠═57b415de-a173-41f7-95ce-e3250b272a96
+# ╟─688fbba9-4950-4158-bcc9-6c81c9a530fa
+# ╠═04865b34-240b-4891-93b2-1c7abe52864a
+# ╠═f102117e-d4ee-44b5-b6ad-b6e98724762e
+# ╠═1bd83ee2-a95f-443f-a138-6ff903b745a7
+# ╠═dae4dbfa-cc82-4c66-b8b3-f4affec8cb67
+# ╟─010a824e-0671-4748-ab92-5b416e8bd0ad
+# ╠═3629ad15-b992-475a-a94a-ea3270311a70
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

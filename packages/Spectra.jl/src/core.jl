@@ -1,3 +1,6 @@
+# TODO: PR for AxisArray to have AbstractAxisArray
+# Make Spectrum and OmniSpectrum <: AbstractAxisArray
+# Fix problem with AxisArray assignment with Interval
 
 # 2D "full" spectrum
 
@@ -12,14 +15,11 @@ struct Spectrum{TDAT, TAX1, TAX2}  <: AbstractMatrix{TDAT}
         _check_typeconsistency(data)
         _check_typeconsistency(axis1)
         _check_typeconsistency(axis2)
+        (issorted(axis1) && issorted(axis2)) || error("Axes must be increasing.")
 
-        typeaxis1 = _typeaxis(axis1)[2]
-        typeaxis2 = _typeaxis(axis2)[2]
-        @assert Set((typeaxis1, typeaxis2)) ∈ [
-            Set((:temporal, :direction)), Set((:spatial, :direction)),
-            Set((:temporal, :temporal)), Set((:spatial, :spatial)),
-            Set((:spatial, :temporal)),
-        ] "Unaceptable combination of axis dimensions (units)."
+        typeaxis1 = axistype(axistype(axis1))[1][1]
+        typeaxis2 = axistype(axistype(axis1))[1][1]
+        @assert Set((typeaxis1, typeaxis2)) ≠ Set((:direction, :direction))
 
         # promotion element type
         Tdata = eltype(data).parameters[1]
@@ -37,8 +37,8 @@ struct Spectrum{TDAT, TAX1, TAX2}  <: AbstractMatrix{TDAT}
 end
 
 function AxisArray(A::Spectrum)
-    name1 = _typeaxis(A.axis1)[1]
-    name2 = _typeaxis(A.axis2)[1]
+    name1 = axistype(A.axis1)
+    name2 = axistype(A.axis2)
     if name1==name2
         name1 = symbol(string(:name1) * "_1")
         name2 = symbol(string(:name2) * "_2")
@@ -95,7 +95,8 @@ struct OmniSpectrum{TDAT, TAX}  <: AbstractVector{TDAT}
         @assert length(data) == length(axis) "Data and axis lengths do not match!"
         _check_typeconsistency(data)
         _check_typeconsistency(axis)
-        _ = _typeaxis(axis)
+        issorted(axis) || error("Axis must be increasing.")
+        _ = axistype(axis)
 
         # promotion element type
         Tdata = eltype(data).parameters[1]
@@ -111,7 +112,7 @@ struct OmniSpectrum{TDAT, TAX}  <: AbstractVector{TDAT}
 end
 
 function AxisArray(A::OmniSpectrum)
-    name = _typeaxis(A.axis)[1]
+    name = axistype(A.axis)
     axis = Axis{name}(A.axis)
     return AxisArray(A, axis)
 end
@@ -127,9 +128,9 @@ Base.eltype(A::OmniSpectrum{US, UA} where {US, UA}) = eltype(A.data)
 Base.copy(A::OmniSpectrum{US, UA} where {US, UA}) = OmniSpectrum(copy(A.data), copy(A.axis))
 
 Base.getindex(A::OmniSpectrum{US, UA} where {US, UA}, i::Int) = getindex(A.data, i)
-Base.getindex(A::OmniSpectrum{US, UA} where {US, UA}, I::Vararg{Int, 1}) = getindex(A.data, I...)
+# Base.getindex(A::OmniSpectrum{US, UA} where {US, UA}, I::Vararg{Int, 1}) = getindex(A.data, I...)
 Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v, i::Int) = setindex!(A.data, v, i)
-Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v, I::Vararg{Int, 1}) = (A.data[I...] = v)
+# Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v, I::Vararg{Int, 1}) = (A.data[I...] = v)
 
 function Base.getindex(A::OmniSpectrum{US, UA} where {US, UA}; kwargs...)
     length(kwargs)>1 && error("More than one index given for 'OmniSpectrum'.")
@@ -152,14 +153,14 @@ function Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v; kwargs...)
 end
 
 function Base.getindex(A::OmniSpectrum{US, UA} where {US, UA}, I::Union{Quantity, AbstractInterval})
-    name = _typeaxis(A.axis)[1]
+    name = axistype(A.axis)
     kwargs = Dict()
     kwargs[name] = I
     return getindex(A; kwargs...)
 end
 
 function Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v, I::Union{Quantity, AbstractInterval})
-    name = _typeaxis(A.axis)[1]
+    name = axistype(A.axis)
     kwargs = Dict()
     kwargs[name] = I
     B = AxisArray(A)
@@ -169,22 +170,25 @@ function Base.setindex!(A::OmniSpectrum{US, UA} where {US, UA}, v, I::Union{Quan
 end
 
 # support functions
+axistype() = Dict(
+    :direction => ((:direction, :direction), 𝐀),
+    :frequency => ((:temporal, :frequency), 𝐓^-1),
+    :angular_frequency => ((:temporal, :angular_frequency), 𝐀*𝐓^-1),
+    :period => ((:temporal, :period), 𝐓),
+    :angular_period => ((:temporal, :angular_period), 𝐓*𝐀^-1),
+    :wavenumber => ((:spatial, :frequency), 𝐋^-1),
+    :angular_wavenumber => ((:spatial, :angular_frequency), 𝐀*𝐋^-1),
+    :wavelength => ((:spatial, :period), 𝐋),
+    :angular_wavelength => ((:spatial, :angular_period), 𝐋*𝐀^-1)
+)
 
-function _typeaxis(axis::AbstractVector{<:Quantity})::Tuple{Symbol, Symbol, Symbol}
-    daxis = dimension(eltype(axis))
-    typeaxis = begin
-        daxis == 𝐀 ? (:direction, :direction, :direction) :
-        daxis == 𝐓^-1 ? (:frequency, :temporal, :frequency) :
-        daxis == 𝐀*𝐓^-1 ? (:angular_frequency, :temporal, :angular_frequency) :
-        daxis == 𝐓 ? (:period, :temporal, :period) :
-        daxis == 𝐓*𝐀^-1 ? (:angular_period, :temporal, :angular_period) :
-        daxis == 𝐋^-1 ? (:wavenumber, :spatial, :frequency) :
-        daxis == 𝐀*𝐋^-1 ? (:angular_wavenumber, :spatial, :angular_frequency) :
-        daxis == 𝐋 ? (:wavelength, :spatial, :period) :
-        daxis == 𝐋*𝐀^-1 ? (:angular_wavelength, :spatial, :angular_period) :
-        error("'axis' does not have acceptable dimensions (units).")
-    end
-    return typeaxis
+axistype(ax::Symbol) = axistype()[ax]
+axistype(dim::Dimensions)::Symbol = Dict(value[2] => key for (key, value) in axistype())[dim]
+axistype(x::AbstractArray{<:Quantity}) = axistype(dimension(eltype(x)))
+axistype(x::Quantity) = axistype(dimension(x))
+
+function axistype(domain::Symbol, type::Symbol)::Symbol
+    return Dict(value[1] => key for (key, value) in axistype())[(domain, type)]
 end
 
 function _check_typeconsistency(array::AbstractArray)::Nothing

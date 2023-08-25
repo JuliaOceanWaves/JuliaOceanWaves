@@ -1,5 +1,7 @@
 [deps]
 AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 DimensionfulAngles = "2d4b8d7a-02d9-40f9-9abe-9c695b77de0d"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+PhysicalConstants = "5ad8b20f-a522-5ce9-bfc9-ddf1d5bda6ab"
 Spectra = "9da5bd80-4f3d-48a2-a37e-447dff2ef7bc"
 UnitfulEquivalences = "da9c4bc3-91c8-4f02-8a40-6b990d2a7e0c"
